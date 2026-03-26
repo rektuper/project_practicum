@@ -17,7 +17,6 @@ def get_pixel_art_avatar(seed: str) -> str:
 
 employees_data = [
     {
-        "id": "1",
         "name": "Иванов Иван Иванович",
         "position": "Frontend-разработчик",
         "projects": ["Альфа"],
@@ -31,7 +30,6 @@ employees_data = [
         "birth_date": "1990-01-01",
     },
     {
-        "id": "2",
         "name": "Петрова Анна Сергеевна",
         "position": "UX/UI дизайнер",
         "projects": ["Бета"],
@@ -45,7 +43,6 @@ employees_data = [
         "birth_date": "1985-05-23",
     },
     {
-        "id": "3",
         "name": "Сидоров Алексей Владимирович",
         "position": "Руководитель отдела",
         "projects": ["Руководство"],
@@ -59,7 +56,6 @@ employees_data = [
         "birth_date": "1992-08-12",
     },
     {
-        "id": "4",
         "name": "Козлов Дмитрий Александрович",
         "position": "Backend-разработчик",
         "projects": ["Альфа"],
@@ -73,7 +69,6 @@ employees_data = [
         "birth_date": "1988-03-14",
     },
     {
-        "id": "5",
         "name": "Смирнова Елена Игоревна",
         "position": "HR-менеджер",
         "projects": ["Руководство"],
@@ -90,7 +85,6 @@ employees_data = [
 
 events_data = [
     {
-        "id": "1",
         "title": "Корпоративный тимбилдинг",
         "date": "2026-06-15",
         "time": "14:00",
@@ -98,7 +92,6 @@ events_data = [
         "description": "Командные игры и барбекю на свежем воздухе",
     },
     {
-        "id": "2",
         "title": "Онлайн-лекция по AI",
         "date": "2026-04-20",
         "time": "11:00",
@@ -106,7 +99,6 @@ events_data = [
         "description": "Приглашенный спикер расскажет о последних трендах в AI",
     },
     {
-        "id": "3",
         "title": "Спортивный день",
         "date": "2026-06-25",
         "time": "10:00",
@@ -117,7 +109,6 @@ events_data = [
 
 work_events_data = [
     {
-        "id": "1",
         "title": "Еженедельный статус-митинг",
         "start_date": "2026-06-15T10:00:00",
         "end_date": "2026-06-15T11:00:00",
@@ -127,7 +118,6 @@ work_events_data = [
         "description": "Обсуждение текущего статуса проектов и планирование на неделю",
     },
     {
-        "id": "2",
         "title": "Презентация нового продукта",
         "start_date": "2026-06-17T14:00:00",
         "end_date": "2026-06-17T16:00:00",
@@ -137,7 +127,6 @@ work_events_data = [
         "description": "Презентация нового продукта для клиентов и партнеров",
     },
     {
-        "id": "3",
         "title": "Дедлайн проекта 'Альфа'",
         "start_date": "2026-06-20T18:00:00",
         "end_date": "2026-06-20T18:00:00",
@@ -147,7 +136,6 @@ work_events_data = [
         "description": "Финальный срок сдачи проекта 'Альфа'",
     },
     {
-        "id": "4",
         "title": "Обучение по новым технологиям",
         "start_date": "2026-06-22T11:00:00",
         "end_date": "2026-06-22T13:00:00",
@@ -157,7 +145,6 @@ work_events_data = [
         "description": "Обучение команды разработки новым технологиям",
     },
     {
-        "id": "5",
         "title": "Ежемесячное собрание отдела",
         "start_date": "2026-05-30T09:00:00",
         "end_date": "2026-05-30T10:30:00",
@@ -167,7 +154,6 @@ work_events_data = [
         "description": "Подведение итогов месяца и планирование на следующий",
     },
     {
-        "id": "6",
         "title": "Встреча с клиентом",
         "start_date": "2026-05-28T15:00:00",
         "end_date": "2026-05-28T16:00:00",
@@ -180,31 +166,28 @@ work_events_data = [
 
 tasks_data = [
     {
-        "id": "1",
         "title": "Подготовить отчет за квартал",
         "description": "Собрать данные и подготовить квартальный отчет для руководства",
         "deadline": "2026-04-20",
         "status": "in-progress",
-        "author_id": "3",
-        "executor_ids": ["1", "2"],
+        "author_name": "Сидоров Алексей Владимирович",
+        "executor_names": ["Иванов Иван Иванович", "Петрова Анна Сергеевна"],
     },
     {
-        "id": "2",
         "title": "Обновить дизайн главной страницы",
         "description": "Внести изменения в дизайн главной страницы согласно новому брендбуку",
         "deadline": "2026-06-25",
         "status": "in-progress",
-        "author_id": "3",
-        "executor_ids": ["2"],
+        "author_name": "Сидоров Алексей Владимирович",
+        "executor_names": ["Петрова Анна Сергеевна"],
     },
     {
-        "id": "3",
         "title": "Провести интервью с кандидатами",
         "description": "Провести собеседования с кандидатами на должность разработчика",
         "deadline": "2026-06-15",
         "status": "completed",
-        "author_id": "5",
-        "executor_ids": ["3", "4"],
+        "author_name": "Смирнова Елена Игоревна",
+        "executor_names": ["Сидоров Алексей Владимирович", "Козлов Дмитрий Александрович"],
     },
 ]
 
@@ -214,13 +197,6 @@ def short_name(full_name: str) -> str:
     if len(parts) < 3:
         return full_name
     return f"{parts[0]} {parts[1][0]}. {parts[2][0]}."
-
-
-def build_short_name_map():
-    result = {}
-    for employee in employees_data:
-        result[short_name(employee["name"])] = employee["id"]
-    return result
 
 
 def seed():
@@ -238,10 +214,10 @@ def seed():
         db.query(Employee).delete()
         db.commit()
 
-        # employees
+        employee_name_to_id = {}
+
         for item in employees_data:
             employee = Employee(
-                id=item["id"],
                 name=item["name"],
                 position=item["position"],
                 team=item["team"],
@@ -253,15 +229,14 @@ def seed():
                 birth_date=item["birth_date"],
             )
             db.add(employee)
+            db.flush()
 
-        db.commit()
+            employee_name_to_id[item["name"]] = employee.id
 
-        # employee_projects + employee_hobbies
-        for item in employees_data:
             for project in item.get("projects", []):
                 db.add(
                     EmployeeProject(
-                        employee_id=item["id"],
+                        employee_id=employee.id,
                         project_name=project,
                     )
                 )
@@ -269,18 +244,21 @@ def seed():
             for hobby in item.get("hobbies", []):
                 db.add(
                     EmployeeHobby(
-                        employee_id=item["id"],
+                        employee_id=employee.id,
                         hobby_name=hobby,
                     )
                 )
 
         db.commit()
 
-        # events
+        short_map = {
+            short_name(name): employee_id
+            for name, employee_id in employee_name_to_id.items()
+        }
+
         for item in events_data:
             db.add(
                 Event(
-                    id=item["id"],
                     title=item["title"],
                     date=item["date"],
                     time=item["time"],
@@ -291,60 +269,62 @@ def seed():
 
         db.commit()
 
-        # work_events
-        short_map = build_short_name_map()
+        work_event_title_to_id = {}
 
         for item in work_events_data:
-            db.add(
-                WorkEvent(
-                    id=item["id"],
-                    title=item["title"],
-                    start_date=item["start_date"],
-                    end_date=item["end_date"],
-                    type=item["type"],
-                    location=item["location"],
-                    description=item["description"],
-                )
+            work_event = WorkEvent(
+                title=item["title"],
+                start_date=item["start_date"],
+                end_date=item["end_date"],
+                type=item["type"],
+                location=item["location"],
+                description=item["description"],
             )
+            db.add(work_event)
+            db.flush()
+
+            work_event_title_to_id[item["title"]] = work_event.id
 
         db.commit()
 
         for item in work_events_data:
+            work_event_id = work_event_title_to_id[item["title"]]
             for participant in item["participants"]:
                 employee_id = short_map.get(participant)
                 if employee_id:
                     db.add(
                         WorkEventParticipant(
-                            work_event_id=item["id"],
+                            work_event_id=work_event_id,
                             employee_id=employee_id,
                         )
                     )
 
         db.commit()
 
-        # tasks
         for item in tasks_data:
-            db.add(
-                Task(
-                    id=item["id"],
-                    title=item["title"],
-                    description=item["description"],
-                    deadline=item["deadline"],
-                    status=item["status"],
-                    author_id=item["author_id"],
-                )
+            author_id = employee_name_to_id.get(item["author_name"])
+            if not author_id:
+                continue
+
+            task = Task(
+                title=item["title"],
+                description=item["description"],
+                deadline=item["deadline"],
+                status=item["status"],
+                author_id=author_id,
             )
+            db.add(task)
+            db.flush()
 
-        db.commit()
-
-        for item in tasks_data:
-            for executor_id in item["executor_ids"]:
-                db.add(
-                    TaskExecutor(
-                        task_id=item["id"],
-                        employee_id=executor_id,
+            for executor_name in item["executor_names"]:
+                executor_id = employee_name_to_id.get(executor_name)
+                if executor_id:
+                    db.add(
+                        TaskExecutor(
+                            task_id=task.id,
+                            employee_id=executor_id,
+                        )
                     )
-                )
 
         db.commit()
 
