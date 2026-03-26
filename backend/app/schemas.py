@@ -53,3 +53,26 @@ class EmployeeShortResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class EventBase(BaseModel):
+    title: str
+    date: str
+    time: str | None = None
+    location: str
+    description: str
+
+
+class EventCreate(EventBase):
+    pass
+
+
+class EventUpdate(EventBase):
+    pass
+
+
+class EventResponse(EventBase):
+    id: int
+
+    class Config:
+        from_attributes = True

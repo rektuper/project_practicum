@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
+
 export default function EngagementPage() {
   const [selectedHobby, setSelectedHobby] = useState("")
   const [events, setEvents] = useState<Event[]>([])
@@ -23,6 +24,8 @@ export default function EngagementPage() {
   const [eventSearchQuery, setEventSearchQuery] = useState("")
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null)
   const [isEmployeeDialogOpen, setIsEmployeeDialogOpen] = useState(false)
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
+  const [isEventDialogOpen, setIsEventDialogOpen] = useState(false)
 
   useEffect(() => {
     const loadData = async () => {
@@ -84,6 +87,11 @@ export default function EngagementPage() {
     setIsEmployeeDialogOpen(true)
   }
 
+  const handleEventClick = (event: Event) => {
+  setSelectedEvent(event)
+  setIsEventDialogOpen(true)
+}
+
   return (
     <div className="container mx-auto px-0 md:px-4 pb-16 md:pb-0">
       <h1 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6">Активность</h1>
@@ -116,7 +124,7 @@ export default function EngagementPage() {
                 <Card key={event.id}>
                   <CardHeader className="p-3 md:p-4 pb-0 md:pb-0">
                     <CardTitle className="text-base md:text-lg">{event.title}</CardTitle>
-                    <CardDescription>{event.description}</CardDescription>
+                    
                   </CardHeader>
                   <CardContent className="p-3 md:p-4">
                     <div className="flex flex-col gap-1 md:gap-2 text-sm">
@@ -124,16 +132,14 @@ export default function EngagementPage() {
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         <span>{new Date(event.date).toLocaleDateString("ru-RU")}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span>{event.time}</span>
-                      </div>
+                      
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-muted-foreground" />
                         <span>{event.location}</span>
                       </div>
                     </div>
-                    <Button className="mt-3 md:mt-4 w-full">Подробнее</Button>
+                    <Button
+                      type="button" className="mt-3 md:mt-4 w-full" onClick={() => handleEventClick(event)}>Подробнее</Button>
                   </CardContent>
                 </Card>
               ))}
@@ -245,6 +251,44 @@ export default function EngagementPage() {
                     ))}
                   </div>
                 </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+            {/* Event Dialog */}
+      <Dialog open={isEventDialogOpen} onOpenChange={setIsEventDialogOpen}>
+        <DialogContent className="sm:max-w-[500px] p-4 md:p-6 max-w-[95vw]">
+          {selectedEvent && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{selectedEvent.title}</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="flex items-center gap-2 text-sm">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <span>{new Date(selectedEvent.date).toLocaleDateString("ru-RU")}</span>
+                </div>
+
+                {selectedEvent.time && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span>{selectedEvent.time}</span>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 text-sm">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <span>{selectedEvent.location}</span>
+                </div>
+
+                {selectedEvent.description && (
+                  <div>
+                    <p className="font-medium mb-1">Описание:</p>
+                    <p className="text-sm text-muted-foreground">{selectedEvent.description}</p>
+                  </div>
+                )}
               </div>
             </>
           )}
