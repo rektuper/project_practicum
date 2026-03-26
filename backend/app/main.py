@@ -4,7 +4,8 @@ from sqlalchemy import text
 
 from app.db import Base, engine
 from app import models
-from app.routers import employees, events
+from app.routers import employees, events, tasks
+
 
 app = FastAPI(title="Project Practicum API")
 
@@ -20,6 +21,7 @@ app.add_middleware(
 
 app.include_router(employees.router)
 app.include_router(events.router)
+app.include_router(tasks.router)
 
 
 @app.get("/")

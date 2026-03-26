@@ -48,13 +48,7 @@ export default function Header() {
           </Link>
         </div>
 
-        <nav className="hidden md:flex items-center gap-6">
-          {routes.map((route) => (
-            <Link key={route.href} href={route.href}>
-              <Button variant={pathname === route.href ? "active" : "ghost"}>{route.label}</Button>
-            </Link>
-          ))}
-        </nav>
+
 
         <div className="flex items-center gap-2">
           <div className="hidden md:block">

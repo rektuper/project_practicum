@@ -17,161 +17,167 @@ import { CalendarIcon, Plus, Search, User, X } from "lucide-react"
 import {
   getTasks,
   addTask,
-  updateTaskStatus,
   searchTasks,
-  getTaskAuthor,
-  getTaskExecutors,
+  toggleTaskCompleted,
   type Task,
 } from "@/lib/data/tasks"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import type { Employee } from "@/lib/data/employees"
 import { getEmployees } from "@/lib/data/employees"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { UserCard } from "@/components/ui/user-card"
+import { useSearchParams } from "next/navigation"
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([])
-  const [newTask, setNewTask] = useState<Omit<Task, "id" | "status" | "authorId" | "executorIds">>({
+  const [newTask, setNewTask] = useState({
     title: "",
     description: "",
     deadline: new Date(),
   })
-  const [selectedExecutors, setSelectedExecutors] = useState<Employee[]>([])
+  const [selectedExecutors, setSelectedExecutors] = useState<(Employee | null)[]>([null])
+  const [executorSearchQueries, setExecutorSearchQueries] = useState<string[]>([""])
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [filteredActiveTasks, setFilteredActiveTasks] = useState<Task[]>([])
   const [filteredCompletedTasks, setFilteredCompletedTasks] = useState<Task[]>([])
-  const [taskAuthors, setTaskAuthors] = useState<Record<string, Employee>>({})
-  const [taskExecutors, setTaskExecutors] = useState<Record<string, Employee[]>>({})
+  const [taskAuthors, setTaskAuthors] = useState<Record<number, Employee>>({})
+  const [taskExecutors, setTaskExecutors] = useState<Record<number, Employee[]>>({})
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null)
   const [isEmployeeDialogOpen, setIsEmployeeDialogOpen] = useState(false)
   const [allEmployees, setAllEmployees] = useState<Employee[]>([])
-  const [employeeSearchQuery, setEmployeeSearchQuery] = useState("")
-  const [executorSearchQueries, setExecutorSearchQueries] = useState<string[]>([""])
   const [executorDropdownOpenIndex, setExecutorDropdownOpenIndex] = useState<number | null>(null)
+  const [openExecutorPickerIndex, setOpenExecutorPickerIndex] = useState<number | null>(null)
+  const searchParams = useSearchParams()
+  const highlightedTaskId = searchParams.get("taskId")
 
   useEffect(() => {
-    const loadTasks = async () => {
-      setIsLoading(true)
-      try {
-        const tasksData = await getTasks()
-        setTasks(tasksData)
-        setFilteredActiveTasks(tasksData.filter((task) => task.status === "in-progress"))
-        setFilteredCompletedTasks(tasksData.filter((task) => task.status === "completed"))
+  const loadTasks = async () => {
+    setIsLoading(true)
+    try {
+      const [tasksData, employees] = await Promise.all([getTasks(), getEmployees()])
 
-        const authorsMap: Record<string, Employee> = {}
-        const executorsMap: Record<string, Employee[]> = {}
+      setTasks(tasksData)
+      setFilteredActiveTasks(tasksData.filter((task) => task.status === "in-progress"))
+      setFilteredCompletedTasks(tasksData.filter((task) => task.status === "completed"))
+      setAllEmployees(employees)
 
-        for (const task of tasksData) {
-          const author = await getTaskAuthor(task.authorId)
-          if (author) {
-            authorsMap[task.id] = author
-          }
+      const authorsMap: Record<number, Employee> = {}
+      const executorsMap: Record<number, Employee[]> = {}
 
-          const executors = await getTaskExecutors(task.executorIds)
-          executorsMap[task.id] = executors
+      for (const task of tasksData) {
+        const author = employees.find((employee) => employee.id === task.authorId)
+        if (author) {
+          authorsMap[task.id] = author
         }
 
-        setTaskAuthors(authorsMap)
-        setTaskExecutors(executorsMap)
-
-        const employees = await getEmployees()
-        setAllEmployees(employees)
-      } catch (error) {
-        console.error("Error loading tasks:", error)
-      } finally {
-        setIsLoading(false)
+        const executors = employees.filter((employee) =>
+          task.executorIds.includes(employee.id)
+        )
+        executorsMap[task.id] = executors
       }
-    }
 
-    loadTasks()
-  }, [])
+      setTaskAuthors(authorsMap)
+      setTaskExecutors(executorsMap)
+    } catch (error) {
+      console.error("Error loading tasks:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  loadTasks()
+}, [])
 
   useEffect(() => {
-    const filterTasks = async () => {
-      if (!searchQuery) {
-        setFilteredActiveTasks(tasks.filter((task) => task.status === "in-progress"))
-        setFilteredCompletedTasks(tasks.filter((task) => task.status === "completed"))
-        return
-      }
-
-      try {
-        const activeResults = await searchTasks(searchQuery, "in-progress")
-        const completedResults = await searchTasks(searchQuery, "completed")
-
-        setFilteredActiveTasks(activeResults)
-        setFilteredCompletedTasks(completedResults)
-      } catch (error) {
-        console.error("Error searching tasks:", error)
-      }
+  const filterTasks = async () => {
+    if (!searchQuery.trim()) {
+      setFilteredActiveTasks(tasks.filter((task) => task.status === "in-progress"))
+      setFilteredCompletedTasks(tasks.filter((task) => task.status === "completed"))
+      return
     }
 
-    filterTasks()
-  }, [searchQuery, tasks])
+    try {
+      const results = await searchTasks(searchQuery)
+      setFilteredActiveTasks(results.filter((task) => task.status === "in-progress"))
+      setFilteredCompletedTasks(results.filter((task) => task.status === "completed"))
+    } catch (error) {
+      console.error("Error searching tasks:", error)
+    }
+  }
+
+  filterTasks()
+}, [searchQuery, tasks])
 
   const handleAddTask = async () => {
-    if (!newTask.title) return
+  if (!newTask.title.trim()) return
 
-    try {
-      // In a real app, you would get the current user's ID
-      const currentUserId = "3" // Assuming Сидоров is the current user
+  try {
+    const currentUserId = 3
 
-      const task = await addTask({
-        ...newTask,
-        status: "in-progress",
-        authorId: currentUserId,
-        executorIds: selectedExecutors.map((executor) => executor.id),
-      })
+    const task = await addTask({
+      title: newTask.title,
+      description: newTask.description,
+      deadline: format(newTask.deadline, "yyyy-MM-dd"),
+      authorId: currentUserId,
+      executorIds: selectedExecutors
+        .filter((executor): executor is Employee => executor !== null)
+        .map((executor) => executor.id),
+      isCompleted: false,
+    })
 
-      // Load author and executors for the new task
-      const author = await getTaskAuthor(task.authorId)
-      const executors = await getTaskExecutors(task.executorIds)
+    const author = allEmployees.find((employee) => employee.id === task.authorId)
+    const executors = allEmployees.filter((employee) =>
+      task.executorIds.includes(employee.id)
+    )
 
-      if (author) {
-        setTaskAuthors((prev) => ({ ...prev, [task.id]: author }))
-      }
-
-      setTaskExecutors((prev) => ({ ...prev, [task.id]: executors }))
-
-      setTasks([...tasks, task])
-      setFilteredActiveTasks([...filteredActiveTasks, task])
-
-      setNewTask({
-        title: "",
-        description: "",
-        deadline: new Date(),
-      })
-      setSelectedExecutors([])
-      setIsDialogOpen(false)
-    } catch (error) {
-      console.error("Error adding task:", error)
+    if (author) {
+      setTaskAuthors((prev) => ({ ...prev, [task.id]: author }))
     }
+
+    setTaskExecutors((prev) => ({ ...prev, [task.id]: executors }))
+
+    const updatedTasks = [...tasks, task]
+    setTasks(updatedTasks)
+    setFilteredActiveTasks(updatedTasks.filter((t) => t.status === "in-progress"))
+    setFilteredCompletedTasks(updatedTasks.filter((t) => t.status === "completed"))
+
+    setNewTask({
+      title: "",
+      description: "",
+      deadline: new Date(),
+    })
+    setSelectedExecutors([null])
+    setExecutorSearchQueries([""])
+    setIsDialogOpen(false)
+  } catch (error) {
+    console.error("Error adding task:", error)
   }
+}
 
-  const handleToggleTaskStatus = async (taskId: string) => {
-    const task = tasks.find((t) => t.id === taskId)
-    if (!task) return
+  const handleToggleTaskStatus = async (taskId: number) => {
+  try {
+    const updated = await toggleTaskCompleted(taskId)
 
-    const newStatus = task.status === "completed" ? "in-progress" : "completed"
+    const updatedTasks = tasks.map((task) =>
+      task.id === taskId
+        ? {
+            ...task,
+            isCompleted: updated.isCompleted,
+            status: updated.status,
+          }
+        : task
+    )
 
-    try {
-      const updatedTask = await updateTaskStatus(taskId, newStatus)
-      if (updatedTask) {
-        const updatedTasks = tasks.map((t) => (t.id === taskId ? updatedTask : t))
-        setTasks(updatedTasks)
-
-        // Update filtered lists
-        setFilteredActiveTasks(updatedTasks.filter((t) => t.status === "in-progress"))
-        setFilteredCompletedTasks(updatedTasks.filter((t) => t.status === "completed"))
-      }
-    } catch (error) {
-      console.error("Error updating task status:", error)
-    }
+    setTasks(updatedTasks)
+    setFilteredActiveTasks(updatedTasks.filter((t) => t.status === "in-progress"))
+    setFilteredCompletedTasks(updatedTasks.filter((t) => t.status === "completed"))
+  } catch (error) {
+    console.error("Error updating task status:", error)
   }
+}
 
   const handleEmployeeClick = (employee: Employee) => {
     setSelectedEmployee(employee)
@@ -212,10 +218,14 @@ export default function TasksPage() {
     const executors = taskExecutors[task.id] || []
 
     return (
-      <div key={task.id} className="flex items-start gap-2 p-2 md:p-3 border rounded-md">
+      <div key={task.id} className={`flex items-start gap-2 p-2 md:p-3 border rounded-md ${highlightedTaskId && Number(highlightedTaskId) === task.id
+      ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+      : ""
+  }`}
+>
         <Checkbox
           id={`task-${task.id}`}
-          checked={task.status === "completed"}
+          checked={task.isCompleted}
           onCheckedChange={() => handleToggleTaskStatus(task.id)}
           className="mt-1"
         />
@@ -293,21 +303,7 @@ export default function TasksPage() {
           )}
 
           <div className="flex justify-between items-center mt-2">
-            <p className="text-xs text-muted-foreground">Дедлайн: {format(task.deadline, "PPP", { locale: ru })}</p>
-
-            {/* Added "Подробнее" link */}
-            <Button 
-              variant="link" 
-              size="sm" 
-              className="h-5 p-0 text-xs underline text-blue-500 hover:text-blue-700"
-              onClick={(e) => {
-                e.stopPropagation()
-                // Here you would add logic to show task details
-                console.log(`Show details for task ${task.id}`)
-              }}
-            >
-              Подробнее
-            </Button>
+            <p className="text-xs text-muted-foreground">Дедлайн: {format(new Date(task.deadline), "PPP", { locale: ru })}</p>
           </div>
         </div>
       </div>
@@ -325,7 +321,9 @@ export default function TasksPage() {
               Добавить задачу
             </Button>
           </DialogTrigger>
-          <DialogContent className="p-4 md:p-6 max-w-[95vw] sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
+          <DialogContent className="p-0 max-w-[95vw] sm:max-w-[550px]">
+            <div className="p-4 md:p-6 max-h-[90vh] overflow-y-auto">
+    
             <DialogHeader>
               <DialogTitle>Новая задача</DialogTitle>
             </DialogHeader>
@@ -349,10 +347,11 @@ export default function TasksPage() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="deadline">Дедлайн</Label>
-                <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                <Popover modal={true} open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       id="deadline"
+                      type="button"
                       variant="outline"
                       className={cn(
                         "w-full justify-start text-left font-normal",
@@ -363,12 +362,18 @@ export default function TasksPage() {
                       {newTask.deadline ? format(newTask.deadline, "PPP", { locale: ru }) : <span>Выберите дату</span>}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
+                  <PopoverContent
+                    align="start"
+                    side="bottom"
+                    sideOffset={8}
+                    className="w-auto p-0 z-[9999] pointer-events-auto"
+                  >
                     <Calendar
                       mode="single"
                       selected={newTask.deadline}
                       onSelect={(date) => {
-                        setNewTask({ ...newTask, deadline: date || new Date() })
+                        if (!date) return
+                        setNewTask((prev) => ({ ...prev, deadline: date }))
                         setIsDatePickerOpen(false)
                       }}
                       initialFocus
@@ -378,102 +383,163 @@ export default function TasksPage() {
               </div>
 
               <div className="grid gap-2">
-                <Label>Исполнители</Label>
-                <div className="flex flex-col gap-2 mb-2 max-h-[200px] overflow-y-auto">
-                  {executorSearchQueries.map((query, index) => (
-                    <div key={index} className="flex items-center gap-2 w-full">
-                      <div className="relative flex-grow z-50">
-                        <Input
-                          placeholder="Иванов Иван Иванович"
-                          value={query}
-                          onChange={(e) => {
-                            const updatedQueries = [...executorSearchQueries];
-                            updatedQueries[index] = e.target.value;
-                            setExecutorSearchQueries(updatedQueries);
-                            
-                            // Open dropdown when typing
-                            if (e.target.value) {
-                              setExecutorDropdownOpenIndex(index);
-                            }
-                            
-                            // Clear selected executor when field is cleared
-                            if (!e.target.value && selectedExecutors[index]) {
-                              const updatedExecutors = [...selectedExecutors];
-                              updatedExecutors[index] = null;
-                              setSelectedExecutors(updatedExecutors);
-                            }
-                          }}
-                          className="w-full"
-                          onFocus={() => {
-                            if (filteredEmployees(query).length > 0) {
-                              setExecutorDropdownOpenIndex(index);
-                            }
-                          }}
-                        />
-                        
-                        {executorDropdownOpenIndex === index && filteredEmployees(query).length > 0 && (
-                          <div className="absolute z-50 w-full bg-popover border rounded-md shadow-md mt-1">
-                            <Command className="rounded-lg border shadow-md">
-                              <CommandList className="max-h-[220px] overflow-auto">
-                                <CommandEmpty>Сотрудники не найдены</CommandEmpty>
-                                <CommandGroup>
-                                  {filteredEmployees(query)
-                                    .slice(0, 5)
-                                    .map((employee) => (
-                                      <CommandItem
-                                        key={employee.id}
-                                        onSelect={() => {
-                                          handleAddExecutor(employee, index);
-                                          const updatedQueries = [...executorSearchQueries];
-                                          updatedQueries[index] = employee.name;
-                                          setExecutorSearchQueries(updatedQueries);
-                                        }}
-                                        className="flex items-center gap-2"
-                                      >
-                                        <Avatar className="h-6 w-6">
-                                          <AvatarImage src={employee.photo || "/placeholder.svg"} alt={employee.name} />
-                                          <AvatarFallback>
-                                            {employee.name
-                                              .split(" ")
-                                              .map((n) => n[0])
-                                              .join("")}
-                                          </AvatarFallback>
-                                        </Avatar>
-                                        <div className="flex flex-col">
-                                          <span className="text-sm">{employee.name}</span>
-                                          <span className="text-xs text-muted-foreground">{employee.position}</span>
-                                        </div>
-                                      </CommandItem>
-                                    ))}
-                                </CommandGroup>
-                              </CommandList>
-                            </Command>
-                          </div>
-                        )}
-                      </div>
-                      
-                      {index > 0 && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 flex-shrink-0"
-                          onClick={() => handleRemoveExecutor(index)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  ))}
+  <Label>Исполнители</Label>
+
+  <div className="flex flex-col gap-2 mb-2">
+    {executorSearchQueries.map((query, index) => {
+      const availableEmployees = filteredEmployees(query).filter(
+        (employee) =>
+          !selectedExecutors.some(
+            (selected, selectedIndex) =>
+              selected?.id === employee.id && selectedIndex !== index
+          )
+      )
+
+      return (
+        <div key={index} className="flex items-start gap-2 w-full">
+          <div className="flex-1">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-start font-normal"
+              onClick={() =>
+                setOpenExecutorPickerIndex(
+                  openExecutorPickerIndex === index ? null : index
+                )
+              }
+            >
+              {selectedExecutors[index] ? (
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <Avatar className="h-6 w-6">
+                    <AvatarImage
+                      src={selectedExecutors[index]?.photo || "/placeholder.svg"}
+                      alt={selectedExecutors[index]?.name || ""}
+                    />
+                    <AvatarFallback>
+                      {selectedExecutors[index]?.name
+                        ?.split(" ")
+                        .map((n) => n[0])
+                        .join("")}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="truncate">{selectedExecutors[index]?.name}</span>
                 </div>
-                <Button variant="outline" onClick={addExecutorField} className="w-full">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Добавить исполнителя
-                </Button>
+              ) : (
+                <span className="text-muted-foreground">Выберите исполнителя</span>
+              )}
+            </Button>
+
+            {openExecutorPickerIndex === index && (
+              <div className="mt-2 rounded-md border bg-background p-2 shadow-sm">
+                <Input
+                  placeholder="Поиск сотрудника..."
+                  value={query}
+                  onChange={(e) => {
+                    const updatedQueries = [...executorSearchQueries]
+                    updatedQueries[index] = e.target.value
+                    setExecutorSearchQueries(updatedQueries)
+                  }}
+                />
+
+                <div className="mt-2 max-h-[220px] overflow-y-auto space-y-1">
+                  {availableEmployees.length > 0 ? (
+                    availableEmployees.slice(0, 8).map((employee) => (
+                      <button
+                        key={employee.id}
+                        type="button"
+                        className="w-full flex items-center gap-2 rounded-md px-2 py-2 text-left hover:bg-muted"
+                        onClick={() => {
+                          handleAddExecutor(employee, index)
+
+                          const updatedQueries = [...executorSearchQueries]
+                          updatedQueries[index] = ""
+                          setExecutorSearchQueries(updatedQueries)
+
+                          setOpenExecutorPickerIndex(null)
+                        }}
+                      >
+                        <Avatar className="h-6 w-6">
+                          <AvatarImage
+                            src={employee.photo || "/placeholder.svg"}
+                            alt={employee.name}
+                          />
+                          <AvatarFallback>
+                            {employee.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")}
+                          </AvatarFallback>
+                        </Avatar>
+
+                        <div className="flex flex-col overflow-hidden">
+                          <span className="text-sm truncate">{employee.name}</span>
+                          <span className="text-xs text-muted-foreground truncate">
+                            {employee.position}
+                          </span>
+                        </div>
+                      </button>
+                    ))
+                  ) : (
+                    <p className="px-2 py-2 text-sm text-muted-foreground">
+                      Сотрудники не найдены
+                    </p>
+                  )}
+                </div>
               </div>
+            )}
+          </div>
+
+          {selectedExecutors[index] && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 flex-shrink-0 mt-1"
+              onClick={() => {
+                const updatedExecutors = [...selectedExecutors]
+                updatedExecutors[index] = null
+                setSelectedExecutors(updatedExecutors)
+
+                const updatedQueries = [...executorSearchQueries]
+                updatedQueries[index] = ""
+                setExecutorSearchQueries(updatedQueries)
+              }}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+
+          {index > 0 && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 flex-shrink-0 mt-1"
+              onClick={() => handleRemoveExecutor(index)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      )
+    })}
+  </div>
+
+  <Button
+    type="button"
+    variant="outline"
+    onClick={addExecutorField}
+    className="w-full"
+  >
+    <Plus className="h-4 w-4 mr-2" />
+    Добавить исполнителя
+  </Button>
+</div>
 
               <Button onClick={handleAddTask} disabled={!newTask.title}>
                 Добавить задачу
               </Button>
+            </div>
             </div>
           </DialogContent>
         </Dialog>
@@ -516,12 +582,12 @@ export default function TasksPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="flex flex-col start">
           <CardHeader className="p-3 md:p-4">
             <CardTitle className="text-lg md:text-xl">Завершенные задачи</CardTitle>
             <CardDescription>{filteredCompletedTasks.length} задач выполнено</CardDescription>
           </CardHeader>
-          <CardContent className="p-3 md:p-4 pt-0 md:pt-0">
+          <CardContent className="p-3 md:p-4 pt-0 md:pt-0 ">
             {isLoading ? (
               <p className="text-center py-4 text-muted-foreground">Загрузка задач...</p>
             ) : (

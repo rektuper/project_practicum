@@ -76,3 +76,48 @@ class EventResponse(EventBase):
 
     class Config:
         from_attributes = True
+
+class TaskExecutorResponse(BaseModel):
+    employee_id: int
+
+    class Config:
+        from_attributes = True
+
+
+class TaskBase(BaseModel):
+    title: str
+    description: str
+    deadline: str
+    author_id: int
+    executor_ids: list[int] = []
+
+
+class TaskCreate(TaskBase):
+    is_completed: bool = False
+
+
+class TaskUpdate(TaskBase):
+    is_completed: bool = False
+
+
+class TaskToggleResponse(BaseModel):
+    id: int
+    is_completed: bool
+    status: str
+
+    class Config:
+        from_attributes = True
+
+
+class TaskResponse(BaseModel):
+    id: int
+    title: str
+    description: str
+    deadline: str
+    status: str
+    is_completed: bool
+    author_id: int
+    executor_ids: list[int] = []
+
+    class Config:
+        from_attributes = True

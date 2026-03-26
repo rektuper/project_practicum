@@ -6,65 +6,79 @@ import { ModeToggle } from "@/components/mode-toggle"
 import { useSidebar } from "./sidebar-context"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
+import {
+  Bot,
+  Users,
+  Activity,
+  CalendarDays,
+  CheckSquare,
+} from "lucide-react"
 
 export default function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
-  const { isSidebarOpen, toggleSidebar, closeSidebar } = useSidebar()
+  const { isSidebarOpen } = useSidebar()
   const [activeRoute, setActiveRoute] = useState<string | null>(null)
 
-  // We'll handle mobile navigation in the header now
-  // This sidebar is only for larger screens
   const routes = [
-    { href: "/chatbot", label: "Чат-бот" },
-    { href: "/employees", label: "Сотрудники" },
-    { href: "/engagement", label: "Активность" },
-    { href: "/events", label: "Календарь" },
-    { href: "/tasks", label: "Задачи" },
+    { href: "/chatbot", label: "Чат-бот", icon: Bot },
+    { href: "/employees", label: "Сотрудники", icon: Users },
+    { href: "/engagement", label: "Активность", icon: Activity },
+    { href: "/events", label: "Календарь", icon: CalendarDays },
+    { href: "/tasks", label: "Задачи", icon: CheckSquare },
   ]
 
-  // Modified to use the router directly with a delay for visual feedback
   const handleNavigation = (href: string) => {
-    // Set active route to highlight immediately
-    setActiveRoute(href);
-    
-    // Delay collapsing and navigation to allow visual feedback
-    setTimeout(() => {
-      closeSidebar();
-      router.push(href);
-    }, 10000);
-  };
+    if (pathname === href) return
+    setActiveRoute(href)
+    router.push(href)
+  }
 
   return (
-    <aside 
+    <aside
       className={cn(
         "hidden md:flex flex-col transition-all duration-200 ease-in-out border-r relative",
-        isSidebarOpen ? "w-[240px]" : "w-[60px]"
+        isSidebarOpen ? "w-[240px]" : "w-[72px]"
       )}
     >
-      <div className="flex flex-col gap-2 p-4">
-        {routes.map((route) => (
-          <Button 
-            key={route.href}
-            variant={(pathname === route.href || activeRoute === route.href) ? "active" : "ghost"} 
-            className={cn(
-              "justify-start overflow-hidden", 
-              isSidebarOpen ? "w-full" : "w-10 px-2"
-            )}
-            onClick={() => handleNavigation(route.href)}
-          >
-            {route.label}
-          </Button>
-        ))}
-        
-        <div className={cn(
-          "mt-auto pt-4 border-t mt-4",
-          isSidebarOpen ? "block" : "hidden"
-        )}>
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Тема</span>
+      <div className="flex flex-col gap-2 p-3">
+        {routes.map((route) => {
+          const Icon = route.icon
+          const isActive = pathname === route.href || activeRoute === route.href
+
+          return (
+            <Button
+              key={route.href}
+              variant={isActive ? "active" : "ghost"}
+              className={cn(
+                "h-10",
+                isSidebarOpen
+                  ? "w-full justify-start gap-2 px-3"
+                  : "w-10 justify-center px-0 mx-auto"
+              )}
+              onClick={() => handleNavigation(route.href)}
+              title={!isSidebarOpen ? route.label : undefined}
+            >
+              <Icon className="h-4 w-4 shrink-0" />
+              {isSidebarOpen && <span>{route.label}</span>}
+            </Button>
+          )
+        })}
+
+        <div
+          className={cn(
+            "mt-auto pt-4 border-t mt-4",
+            isSidebarOpen ? "block" : "flex justify-center"
+          )}
+        >
+          {isSidebarOpen ? (
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Тема</span>
+              <ModeToggle />
+            </div>
+          ) : (
             <ModeToggle />
-          </div>
+          )}
         </div>
       </div>
     </aside>

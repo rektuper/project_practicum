@@ -169,7 +169,7 @@ tasks_data = [
         "title": "Подготовить отчет за квартал",
         "description": "Собрать данные и подготовить квартальный отчет для руководства",
         "deadline": "2026-04-20",
-        "status": "in-progress",
+        "is_completed": False,
         "author_name": "Сидоров Алексей Владимирович",
         "executor_names": ["Иванов Иван Иванович", "Петрова Анна Сергеевна"],
     },
@@ -177,7 +177,7 @@ tasks_data = [
         "title": "Обновить дизайн главной страницы",
         "description": "Внести изменения в дизайн главной страницы согласно новому брендбуку",
         "deadline": "2026-06-25",
-        "status": "in-progress",
+        "is_completed": False,
         "author_name": "Сидоров Алексей Владимирович",
         "executor_names": ["Петрова Анна Сергеевна"],
     },
@@ -185,7 +185,7 @@ tasks_data = [
         "title": "Провести интервью с кандидатами",
         "description": "Провести собеседования с кандидатами на должность разработчика",
         "deadline": "2026-06-15",
-        "status": "completed",
+        "is_completed": True,
         "author_name": "Смирнова Елена Игоревна",
         "executor_names": ["Сидоров Алексей Владимирович", "Козлов Дмитрий Александрович"],
     },
@@ -305,12 +305,12 @@ def seed():
             author_id = employee_name_to_id.get(item["author_name"])
             if not author_id:
                 continue
-
             task = Task(
                 title=item["title"],
                 description=item["description"],
                 deadline=item["deadline"],
-                status=item["status"],
+                status="completed" if item["is_completed"] else "in-progress",
+                is_completed=item["is_completed"],
                 author_id=author_id,
             )
             db.add(task)

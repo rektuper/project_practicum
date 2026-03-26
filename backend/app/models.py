@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from app.db import Base
@@ -108,7 +108,8 @@ class Task(Base):
     title = Column(String, nullable=False)
     description = Column(String, nullable=False)
     deadline = Column(String, nullable=False)
-    status = Column(String, nullable=False)
+    status = Column(String, nullable=False, default="in-progress")
+    is_completed = Column(Boolean, nullable=False, default=False)
     author_id = Column(Integer, ForeignKey("employees.id"), nullable=False, index=True)
 
 

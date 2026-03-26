@@ -1,94 +1,161 @@
-import { fuzzySearchObjects } from "@/lib/utils/fuzzy-search"
-import type { Employee } from "./employees"
+import { apiFetch } from "@/lib/api/client"
 
-export type Task = {
-  id: string
+type TaskApi = {
+  id: number
   title: string
   description: string
-  deadline: Date
-  status: "in-progress" | "completed"
-  authorId: string
-  executorIds: string[]
+  deadline: string
+  status: string
+  is_completed: boolean
+  author_id: number
+  executor_ids: number[]
 }
 
-const tasks: Task[] = [
-  {
-    id: "1",
-    title: "Подготовить отчет за квартал",
-    description: "Собрать данные и подготовить квартальный отчет для руководства",
-    deadline: new Date(2026, 3, 20),
-    status: "in-progress",
-    authorId: "3",
-    executorIds: ["1", "2"],
-  },
-  {
-    id: "2",
-    title: "Обновить дизайн главной страницы",
-    description: "Внести изменения в дизайн главной страницы согласно новому брендбуку",
-    deadline: new Date(2026, 5, 25),
-    status: "in-progress",
-    authorId: "3",
-    executorIds: ["2"],
-  },
-  {
-    id: "3",
-    title: "Провести интервью с кандидатами",
-    description: "Провести собеседования с кандидатами на должность разработчика",
-    deadline: new Date(2026, 5, 15),
-    status: "completed",
-    authorId: "5",
-    executorIds: ["3", "4"],
-  },
-]
+export type Task = {
+  id: number
+  title: string
+  description: string
+  deadline: string
+  status: string
+  isCompleted: boolean
+  authorId: number
+  executorIds: number[]
+}
+
+export type TaskCreateInput = {
+  title: string
+  description: string
+  deadline: string
+  authorId: number
+  executorIds: number[]
+  isCompleted?: boolean
+}
+
+export type TaskUpdateInput = {
+  title: string
+  description: string
+  deadline: string
+  authorId: number
+  executorIds: number[]
+  isCompleted: boolean
+}
+
+type ToggleTaskApi = {
+  id: number
+  is_completed: boolean
+  status: string
+}
+
+function mapTask(task: TaskApi): Task {
+  return {
+    id: task.id,
+    title: task.title,
+    description: task.description,
+    deadline: task.deadline,
+    status: task.status,
+    isCompleted: task.is_completed,
+    authorId: task.author_id,
+    executorIds: task.executor_ids ?? [],
+  }
+}
 
 export const getTasks = async (): Promise<Task[]> => {
-  return tasks
+  const data = await apiFetch<TaskApi[]>("/tasks/")
+  return data.map(mapTask)
 }
 
-export const searchTasks = async (query: string, status?: Task["status"]): Promise<Task[]> => {
-  const filteredByStatus = status ? tasks.filter((task) => task.status === status) : tasks
-
-  if (!query) return filteredByStatus
-
-  return fuzzySearchObjects(filteredByStatus, query, ["title", "description"])
-}
-
-export const getTaskById = async (id: string): Promise<Task | undefined> => {
-  return tasks.find((task) => task.id === id)
-}
-
-export const addTask = async (task: Omit<Task, "id">): Promise<Task> => {
-  const newTask: Task = {
-    id: Date.now().toString(),
-    ...task,
+export const getTaskById = async (id: number): Promise<Task | undefined> => {
+  try {
+    const data = await apiFetch<TaskApi>(`/tasks/${id}`)
+    return mapTask(data)
+  } catch {
+    return undefined
   }
-  tasks.push(newTask)
-  return newTask
 }
 
-export const updateTaskStatus = async (id: string, status: Task["status"]): Promise<Task | undefined> => {
-  const taskIndex = tasks.findIndex((task) => task.id === id)
-  if (taskIndex === -1) return undefined
-
-  tasks[taskIndex].status = status
-  return tasks[taskIndex]
-}
-
-export const getTaskAuthor = async (authorId: string): Promise<Employee | undefined> => {
-  const { getEmployeeById } = await import("./employees")
-  return getEmployeeById(authorId)
-}
-
-export const getTaskExecutors = async (executorIds: string[]): Promise<Employee[]> => {
-  const { getEmployeeById } = await import("./employees")
-  const executors: Employee[] = []
-
-  for (const id of executorIds) {
-    const employee = await getEmployeeById(id)
-    if (employee) {
-      executors.push(employee)
-    }
+export const searchTasks = async (query: string): Promise<Task[]> => {
+  if (!query.trim()) {
+    return getTasks()
   }
 
-  return executors
+  const data = await apiFetch<TaskApi[]>(
+    `/tasks/search?q=${encodeURIComponent(query)}`
+  )
+
+  return data.map(mapTask)
+}
+
+export const addTask = async (payload: TaskCreateInput): Promise<Task> => {
+  const data = await apiFetch<TaskApi>("/tasks/", {
+    method: "POST",
+    body: JSON.stringify({
+      title: payload.title,
+      description: payload.description,
+      deadline: payload.deadline,
+      author_id: payload.authorId,
+      executor_ids: payload.executorIds,
+      is_completed: payload.isCompleted ?? false,
+    }),
+  })
+
+  return mapTask(data)
+}
+
+export const updateTask = async (
+  id: number,
+  payload: TaskUpdateInput
+): Promise<Task> => {
+  const data = await apiFetch<TaskApi>(`/tasks/${id}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      title: payload.title,
+      description: payload.description,
+      deadline: payload.deadline,
+      author_id: payload.authorId,
+      executor_ids: payload.executorIds,
+      is_completed: payload.isCompleted,
+    }),
+  })
+
+  return mapTask(data)
+}
+
+export const toggleTaskCompleted = async (
+  id: number
+): Promise<{ id: number; isCompleted: boolean; status: string }> => {
+  const data = await apiFetch<ToggleTaskApi>(`/tasks/${id}/toggle`, {
+    method: "PATCH",
+  })
+
+  return {
+    id: data.id,
+    isCompleted: data.is_completed,
+    status: data.status,
+  }
+}
+
+export const updateTaskStatus = async (
+  id: number,
+  isCompleted: boolean
+): Promise<Task | undefined> => {
+  const task = await getTaskById(id)
+
+  if (!task) {
+    return undefined
+  }
+
+  return updateTask(id, {
+    title: task.title,
+    description: task.description,
+    deadline: task.deadline,
+    authorId: task.authorId,
+    executorIds: task.executorIds,
+    isCompleted,
+  })
+}
+
+export const deleteTask = async (id: number): Promise<void> => {
+  await apiFetch(`/tasks/${id}`, {
+    method: "DELETE",
+  })
 }

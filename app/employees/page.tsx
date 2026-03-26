@@ -11,6 +11,7 @@ import { Search, ChevronRight } from "lucide-react"
 import { getEmployees, getProjects, searchEmployees, type Employee } from "@/lib/data/employees"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { UserCard } from "@/components/ui/user-card"
+import { getTasks } from "@/lib/data/tasks"
 
 export default function EmployeesPage() {
   const [nameFilter, setNameFilter] = useState("")
@@ -21,6 +22,7 @@ export default function EmployeesPage() {
   const [projects, setProjects] = useState<string[]>([])
   const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [employeeTasks, setEmployeeTasks] = useState<Task[]>([])
 
   useEffect(() => {
     const loadData = async () => {
@@ -48,6 +50,28 @@ export default function EmployeesPage() {
 
     filterEmployees()
   }, [nameFilter, projectFilter])
+
+  useEffect(() => {
+  const loadEmployeeTasks = async () => {
+    if (!selectedEmployee) return
+
+    try {
+      const tasks = await getTasks()
+
+      const filtered = tasks.filter(
+        (task) =>
+          task.authorId === selectedEmployee.id ||
+          task.executorIds.includes(selectedEmployee.id)
+      )
+
+      setEmployeeTasks(filtered)
+    } catch (error) {
+      console.error("Error loading employee tasks:", error)
+    }
+  }
+
+  loadEmployeeTasks()
+}, [selectedEmployee])
 
   return (
     <div className="container mx-auto px-0 md:px-4 pb-16 md:pb-0">
@@ -133,13 +157,43 @@ export default function EmployeesPage() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[500px] p-0 max-w-[95vw] rounded-xl overflow-hidden border-2 border-red-500 dark:border-[#616174]" hideCloseButton={true}>
           {selectedEmployee && (
-            <UserCard 
-              employee={selectedEmployee}
-              variant="dialog"
-              onClose={() => setIsDialogOpen(false)}
-              showCloseButton={true}
-            />
-          )}
+  <div className="p-4 space-y-4">
+    <UserCard 
+      employee={selectedEmployee}
+      variant="dialog"
+      onClose={() => setIsDialogOpen(false)}
+      showCloseButton={true}
+    />
+
+    {/* Задачи сотрудника */}
+    <div>
+      <h3 className="text-sm font-semibold mb-2">Задачи</h3>
+
+      {employeeTasks.length > 0 ? (
+        <div className="space-y-2 max-h-[200px] overflow-y-auto">
+          {employeeTasks.map((task) => (
+            <button
+              key={task.id}
+              onClick={() => {
+                window.location.href = `/tasks?taskId=${task.id}`
+              }}
+              className="w-full text-left p-2 rounded-md border hover:bg-muted transition"
+            >
+              <div className="text-sm font-medium">{task.title}</div>
+              <div className="text-xs text-muted-foreground">
+                {task.isCompleted ? "Выполнена" : "В работе"}
+              </div>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          Нет задач
+        </p>
+      )}
+    </div>
+  </div>
+)}
         </DialogContent>
       </Dialog>
     </div>
